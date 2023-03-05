@@ -25,7 +25,7 @@ public:
     {
         clear_console();
         init_game_buffer(game_size, initial_snake);
-	}
+    }
 
     void game_state(const std::list<vec2i>& snake, const vec2i& apple, std::size_t score, std::size_t max_score)
     {
@@ -44,12 +44,12 @@ public:
 
     void win()
     {
-		std::cout << "You won!" << std::endl;
+        std::cout << "You won!" << std::endl;
     }
 
     void loss()
     {
-		std::cout << "You lost!" << std::endl;
+        std::cout << "You lost!" << std::endl;
     }
 
 private:
@@ -76,7 +76,7 @@ private:
             it = end;
             // fill right border char
             *(it) = frame_vertical_char;
-			*(++it) = newline_char;
+            *(++it) = newline_char;
         }
 
         // fill last row
@@ -96,10 +96,10 @@ private:
 
     void clear_console()
     {
-		// https://learn.microsoft.com/en-us/windows/console/clearing-the-screen
-		static constexpr PCWSTR clear_console_sequence = L"\x1b[2J";
+        // https://learn.microsoft.com/en-us/windows/console/clearing-the-screen
+        static constexpr PCWSTR clear_console_sequence = L"\x1b[2J";
         static constexpr PCWSTR hide_cursor_sequence = L"\033[?25l";
-		DWORD written = 0;
+        DWORD written = 0;
         if (!WriteConsoleW(_stdout_handle, clear_console_sequence, (DWORD)wcslen(clear_console_sequence), &written, NULL))
         {
             // TODO send help...
@@ -116,7 +116,7 @@ private:
 
     void reset_console_cursor_pos() const
     {
-		SetConsoleCursorPosition(_stdout_handle, {0, 0});
+        SetConsoleCursorPosition(_stdout_handle, {0, 0});
     }
 
     std::size_t game_xy_to_buffer_index(const vec2i& pos) const
@@ -139,7 +139,7 @@ private:
     void draw(const std::list<vec2i>& snake)
     {
         draw(' ', { _previous_tail.x, _previous_tail.y });
-		_previous_tail = snake.back();
+        _previous_tail = snake.back();
 
         draw(snake_char, snake.front());
         draw(snake_char, snake.back());
