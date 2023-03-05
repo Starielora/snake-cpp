@@ -27,7 +27,7 @@ public:
         init_game_buffer(game_size, initial_snake);
 	}
 
-    void render_game_state(const std::list<vec2i>& snake, const vec2i& apple, std::size_t score, std::size_t max_score)
+    void game_state(const std::list<vec2i>& snake, const vec2i& apple, std::size_t score, std::size_t max_score)
     {
         reset_console_cursor_pos();
 
@@ -42,12 +42,12 @@ public:
         std::cout << std::flush;
     }
 
-    void render_win()
+    void win()
     {
 		std::cout << "You won!" << std::endl;
     }
 
-    void render_loose()
+    void loss()
     {
 		std::cout << "You lost!" << std::endl;
     }

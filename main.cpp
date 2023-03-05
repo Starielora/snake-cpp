@@ -12,15 +12,15 @@ int main()
     constexpr auto delay = std::chrono::milliseconds(100);
 
     auto game = game_logic::game_logic(w, h);
-    auto game_render = windows_console_printer({ w, h }, game.snake());
+    auto render = windows_console_printer({ w, h }, game.snake());
 
     for(;;)
     {
-        game_render.render_game_state(game.snake(), game.apple(), game.score(), game.max_score());
+        render.game_state(game.snake(), game.apple(), game.score(), game.max_score());
 
         if (game.win())
         {
-            game_render.render_win();
+            render.win();
             return 0;
         }
 
@@ -31,7 +31,7 @@ int main()
         const auto collision = game.update(input);
         if (collision)
         {
-            game_render.render_loose();
+            render.loss();
             return 1;
         }
     }
