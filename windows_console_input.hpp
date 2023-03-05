@@ -23,8 +23,6 @@ namespace windows_console_input
                 exit(GetLastError());
             }
 
-            // Dispatch the events to the appropriate handler.
-
             // respect only first input to avoid handling "key up event"
             switch (buffer[0].EventType)
             {
