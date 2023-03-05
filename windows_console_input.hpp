@@ -14,9 +14,9 @@ namespace windows_console_input
         if (eventsCount > 0)
         {
             if (!ReadConsoleInput(
-                console,      // input buffer handle
-                buffer,     // buffer to read into
-                sizeof(buffer) / sizeof(INPUT_RECORD),         // size of read buffer
+                console, // input buffer handle
+                buffer, // buffer to read into
+                sizeof(buffer) / sizeof(INPUT_RECORD), // size of read buffer
                 &recordsReadCount)) // number of records read
             {
                 // TODO send help
