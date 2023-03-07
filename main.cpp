@@ -1,18 +1,21 @@
 #include "game_logic.hpp"
+#ifdef WIN32
 #include "windows_console_input.hpp"
-#include "windows_stdout_render.hpp"
+#endif
+#include "stdout_render.hpp"
 #include "bot.hpp"
 
 #include <thread>
 #include <chrono>
 #include <functional>
+#include <string.h>
 
 int play_game(const std::function<vec2i(void)>& next_move, const vec2i& game_size)
 {
-    constexpr auto delay = std::chrono::milliseconds(500);
+    constexpr auto delay = std::chrono::milliseconds(10);
 
     auto game = game_logic::game_logic(game_size);
-    auto render = windows_console_printer(game_size, game.snake());
+    auto render = console_printer(game_size, game.snake());
 
     for(;;)
     {
@@ -47,5 +50,7 @@ int main(int argc, const char** argv)
         return play_game([bot]() mutable { return bot.next_move(); }, {w, h});
     }
 
+#ifdef WIN32
     return play_game([]() { return windows_console_input::read(); }, {w, h});
+#endif
 }

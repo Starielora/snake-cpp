@@ -5,9 +5,13 @@
 #include <list>
 #include <iostream>
 
-#include <windows.h>
+#ifdef WIN32
+#include "console_windows.hpp"
+#elif linux
+#include "console_linux.hpp"
+#endif
 
-class windows_console_printer final
+class console_printer final
 {
     static constexpr auto apple_char = '@';
     static constexpr auto snake_char = 'o';
@@ -17,14 +21,21 @@ class windows_console_printer final
     static constexpr auto newline_char = '\n';
 
 public:
-    windows_console_printer(const vec2i& game_size, const std::list<vec2i>& initial_snake)
-        : _stdout_handle(GetStdHandle(STD_OUTPUT_HANDLE))
-        , _game_size(game_size)
+    console_printer(const vec2i& game_size, const std::list<vec2i>& initial_snake)
+        : _game_size(game_size)
         , _buffer((2*game_size.x + 3) * (game_size.y + 2), ' ')
         , _previous_tail(initial_snake.back())
     {
         clear_console();
+        hide_cursor();
         init_game_buffer(game_size, initial_snake);
+    }
+
+    ~console_printer()
+    {
+        // TODO restore terminal state in general
+        // also handle signals like abort etc.
+        show_cursor();
     }
 
     void game_state(const std::list<vec2i>& snake, const vec2i& apple, std::size_t score, std::size_t max_score)
@@ -92,31 +103,6 @@ private:
         }
     }
 
-    void clear_console()
-    {
-        // https://learn.microsoft.com/en-us/windows/console/clearing-the-screen
-        static constexpr PCWSTR clear_console_sequence = L"\x1b[2J";
-        static constexpr PCWSTR hide_cursor_sequence = L"\033[?25l";
-        DWORD written = 0;
-        if (!WriteConsoleW(_stdout_handle, clear_console_sequence, (DWORD)wcslen(clear_console_sequence), &written, NULL))
-        {
-            // TODO send help...
-            exit(GetLastError());
-        }
-
-        // TODO this alters terminal state which should be recovered after exit/crash...
-        if (!WriteConsoleW(_stdout_handle, hide_cursor_sequence, (DWORD)wcslen(hide_cursor_sequence), &written, NULL))
-        {
-            // TODO send help...
-            exit(GetLastError());
-        }
-    }
-
-    void reset_console_cursor_pos() const
-    {
-        SetConsoleCursorPosition(_stdout_handle, {0, 0});
-    }
-
     std::size_t game_xy_to_buffer_index(const vec2i& pos) const
     {
         // first skip first row: 2 char wide game cells + 2 char for frame + 1 for newline
@@ -144,7 +130,6 @@ private:
     }
 
 private:
-    const HANDLE _stdout_handle;
     const vec2i _game_size;
     std::string _buffer;
     vec2i _previous_tail;
