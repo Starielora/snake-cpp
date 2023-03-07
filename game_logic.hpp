@@ -66,8 +66,8 @@ namespace game_logic
         }
 
     public:
-        game_logic(int width, int height)
-            : _game_size({ width, height })
+        game_logic(const vec2i& game_size)
+            : _game_size(game_size)
             , _max_score(_game_size.x * _game_size.y - initial_snake.size())
             , _delta({ 1, 0 })
             , _score(0)
@@ -80,7 +80,7 @@ namespace game_logic
 
         auto score() const { return _score; }
         auto max_score() const { return _max_score; }
-        bool win() { return _score == _max_score; }
+        bool win() { return _available_cells.size() == 0; }
         const auto& snake() const { return _snake; }
         const auto& apple() const { return _apple; }
 
