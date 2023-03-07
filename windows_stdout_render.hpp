@@ -34,11 +34,9 @@ public:
         draw(snake);
         draw(apple_char, apple);
 
-        // TODO is it possible to not copy data here?
-        // i.e. writing directly to console buffer
-        // probably in STL no, but maybe using windows API?
         std::cout.write(_buffer.data(), _buffer.size());
-        std::cout << "Score: " << score << '/' << max_score << '\n';
+        // Profiler says that printing formatted oputput is super bad
+        //std::cout << "Score: " << score << '/' << max_score << '\n';
         std::cout << std::flush;
     }
 
