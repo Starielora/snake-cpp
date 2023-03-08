@@ -3,8 +3,6 @@
 
 #include <array>
 #include <list>
-#include <deque>
-#include <queue>
 #include <random>
 #include <algorithm>
 
@@ -25,7 +23,7 @@ namespace game_logic
 
         static auto generate_available_cells(const vec2i& game_size, const std::list<vec2i>& snake)
         {
-            auto available_cells = std::deque<vec2i>{};
+            auto available_cells = std::vector<vec2i>{};
             for (int y = 0; y < game_size.y; ++y)
             {
                 for (int x = 0; x < game_size.x; ++x)
@@ -48,7 +46,7 @@ namespace game_logic
 
         static auto generate_random_indices_for_available_cells(std::size_t size)
         {
-            std::queue<std::size_t> indices;
+            std::vector<std::size_t> indices;
             std::random_device rd;
             std::mt19937 gen(rd());
 
@@ -57,10 +55,10 @@ namespace game_logic
                 // generate from range one less for each apple
                 // to ensure index is always valid in availableCells
                 std::uniform_int_distribution<> rand(0, i);
-                indices.push(rand(gen));
+                indices.push_back(rand(gen));
             }
 
-            indices.push(0);
+            indices.push_back(0);
 
             return indices;
         }
@@ -74,13 +72,14 @@ namespace game_logic
             , _snake(create_initial_snake())
             , _available_cells(generate_available_cells(_game_size, _snake))
             , _random_indices(generate_random_indices_for_available_cells(_available_cells.size()))
+            , _random_index(_random_indices.cbegin())
             , _apple(get_next_apple())
         {
         }
 
         auto score() const { return _score; }
         auto max_score() const { return _max_score; }
-        bool win() { return _available_cells.size() == 0; }
+        bool win() { return _random_index == _random_indices.end(); }
         const auto& snake() const { return _snake; }
         const auto& apple() const { return _apple; }
 
@@ -125,10 +124,10 @@ namespace game_logic
     private:
         vec2i get_next_apple()
         {
-            const auto index = _random_indices.front();
+            const auto index = *_random_index;
+            _random_index++;
             const auto apple = _available_cells.at(index);
             _available_cells.erase(_available_cells.begin() + index);
-            _random_indices.pop();
             return apple;
         }
 
@@ -153,8 +152,9 @@ namespace game_logic
         vec2i _delta;
         std::size_t _score{ 0 };
         std::list<vec2i> _snake;
-        std::deque<vec2i> _available_cells;
-        std::queue<std::size_t> _random_indices;
+        std::vector<vec2i> _available_cells;
+        std::vector<std::size_t> _random_indices;
+        std::vector<std::size_t>::const_iterator _random_index;
         vec2i _apple;
     };
 }
