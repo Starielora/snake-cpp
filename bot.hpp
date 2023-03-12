@@ -1,5 +1,5 @@
 #pragma once
-#include "vec2i.h"
+#include "glm/vec2.hpp"
 #include <vector>
 
 // TODO works only on even width game size
@@ -7,14 +7,14 @@ namespace game_logic
 {
     struct bot
     {
-        bot(const vec2i& game_size)
+        bot(const glm::u32vec2& game_size)
             : _moves(generate_moves(game_size))
             , _current_move(0)
         {
 
         }
 
-        vec2i next_move()
+        glm::u32vec2 next_move()
         {
             // I want to avoid branch here so badly :(
             if (_current_move == _moves.size())
@@ -23,15 +23,15 @@ namespace game_logic
         }
 
     private:
-        static std::vector<vec2i> generate_moves(const vec2i& game_size)
+        static std::vector<glm::u32vec2> generate_moves(const glm::u32vec2& game_size)
         {
-            auto v = std::vector<vec2i>{};
+            auto v = std::vector<glm::u32vec2>{};
 
-            const auto none = vec2i{ 0, 0 };
-            const auto down = vec2i{ 0, 1 };
-            const auto left = vec2i{ -1, 0 };
-            const auto up = vec2i{ 0, -1 };
-            const auto right = vec2i{ 1, 0 };
+            const auto none = glm::u32vec2{ 0, 0 };
+            const auto down = glm::u32vec2{ 0, 1 };
+            const auto left = glm::u32vec2{ -1, 0 };
+            const auto up = glm::u32vec2{ 0, -1 };
+            const auto right = glm::u32vec2{ 1, 0 };
 
             for (int i = 0; i < game_size.x - 2; ++i)
             {
@@ -78,7 +78,7 @@ namespace game_logic
         }
 
     private:
-        std::vector<vec2i> _moves;
+        std::vector<glm::u32vec2> _moves;
         std::size_t _current_move;
     };
 }

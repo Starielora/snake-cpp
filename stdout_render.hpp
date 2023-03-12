@@ -1,5 +1,5 @@
 #pragma once
-#include "vec2i.h"
+#include "glm/glm.hpp"
 
 #include <string>
 #include <list>
@@ -21,7 +21,7 @@ class console_printer final
     static constexpr auto newline_char = '\n';
 
 public:
-    console_printer(const vec2i& game_size, const std::list<vec2i>& initial_snake)
+    console_printer(const glm::u32vec2& game_size, const std::list<glm::u32vec2>& initial_snake)
         : _game_size(game_size)
         , _buffer((2*game_size.x + 3) * (game_size.y + 2), ' ')
         , _previous_tail(initial_snake.back())
@@ -38,7 +38,7 @@ public:
         show_cursor();
     }
 
-    void game_state(const std::list<vec2i>& snake, const vec2i& apple, std::size_t score, std::size_t max_score)
+    void game_state(const std::list<glm::u32vec2>& snake, const glm::u32vec2& apple, std::size_t score, std::size_t max_score)
     {
         reset_console_cursor_pos();
 
@@ -62,7 +62,7 @@ public:
     }
 
 private:
-    void init_game_buffer(const vec2i& game_size, const std::list<vec2i>& initial_snake)
+    void init_game_buffer(const glm::u32vec2& game_size, const std::list<glm::u32vec2>& initial_snake)
     {
         auto it = _buffer.begin();
 
@@ -103,7 +103,7 @@ private:
         }
     }
 
-    std::size_t game_xy_to_buffer_index(const vec2i& pos) const
+    std::size_t game_xy_to_buffer_index(const glm::u32vec2& pos) const
     {
         // first skip first row: 2 char wide game cells + 2 char for frame + 1 for newline
         // then skip y times such rows as first one
@@ -114,13 +114,13 @@ private:
 
     }
 
-    void draw(char c, const vec2i& pos)
+    void draw(char c, const glm::u32vec2& pos)
     {
         const auto index = game_xy_to_buffer_index(pos);
         _buffer[index] = c;
     }
 
-    void draw(const std::list<vec2i>& snake)
+    void draw(const std::list<glm::u32vec2>& snake)
     {
         draw(' ', { _previous_tail.x, _previous_tail.y });
         _previous_tail = snake.back();
@@ -130,8 +130,8 @@ private:
     }
 
 private:
-    const vec2i _game_size;
+    const glm::u32vec2 _game_size;
     std::string _buffer;
-    vec2i _previous_tail;
+    glm::u32vec2 _previous_tail;
 };
 

@@ -1,10 +1,10 @@
-#include "vec2i.h"
+#include "glm/glm.hpp"
 
 #include <windows.h>
 
 namespace windows_console_input
 {
-    vec2i read()
+    glm::u32vec2 read()
     {
         HANDLE console = GetStdHandle(STD_INPUT_HANDLE);
         DWORD eventsCount;

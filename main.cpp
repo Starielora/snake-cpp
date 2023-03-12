@@ -5,12 +5,14 @@
 #include "stdout_render.hpp"
 #include "bot.hpp"
 
+#include "glm/glm.hpp"
+
 #include <thread>
 #include <chrono>
 #include <functional>
 #include <string.h>
 
-int play_game(const std::function<vec2i(void)>& next_move, const vec2i& game_size)
+int play_game(const std::function<glm::u32vec2(void)>& next_move, const glm::u32vec2& game_size)
 {
     constexpr auto delay = std::chrono::milliseconds(10);
 
