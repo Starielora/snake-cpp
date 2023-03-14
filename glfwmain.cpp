@@ -1,15 +1,20 @@
+#include "game_logic.hpp"
+#include "bot.hpp"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 #include "camera.hpp"
 #include "shader.hpp"
 
 #include <iostream>
 #include <array>
+#include <vector>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -27,8 +32,18 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+struct InstanceData
+{
+    glm::vec4 color;
+    glm::mat4 transformation;
+};
+
 int main()
 {
+    glm::u32vec2 game_size{ 10, 10 };
+    game_logic::game_logic game(game_size);
+    game_logic::bot bot(game_size);
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -50,7 +65,7 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -75,10 +90,11 @@ int main()
 
         constexpr auto indexes = std::array<uint32_t, 14>{ 2, 3, 6, 7, 5, 3, 1, 2, 0, 6, 4, 5, 0, 1 };
 
-        unsigned int VBO, VAO, EBO;
-        glGenVertexArrays(1, &VAO);
-        glGenBuffers(1, &VBO);
-        glGenBuffers(1, &EBO);
+        const auto VAO = gl::genVertexArray();
+        const auto VBO = gl::genBuffer();
+        const auto instanceVBO = gl::genBuffer();
+        const auto EBO = gl::genBuffer();
+        const auto cubesCount = game_size.x * game_size.y;
 
         glBindVertexArray(VAO);
 
@@ -90,6 +106,39 @@ int main()
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(uint32_t), indexes.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); gl::checkError();
+        glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * cubesCount, nullptr, GL_DYNAMIC_DRAW); gl::checkError();
+
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(0 * sizeof(glm::vec4))); gl::checkError();
+        glEnableVertexAttribArray(1); gl::checkError();
+
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(1 * sizeof(glm::vec4))); gl::checkError();
+        glEnableVertexAttribArray(2); gl::checkError();
+
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(2 * sizeof(glm::vec4))); gl::checkError();
+        glEnableVertexAttribArray(3); gl::checkError();
+
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(3 * sizeof(glm::vec4))); gl::checkError();
+        glEnableVertexAttribArray(4); gl::checkError();
+
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(4 * sizeof(glm::vec4))); gl::checkError();
+        glEnableVertexAttribArray(5); gl::checkError();
+
+        glVertexAttribDivisor(1, 1); gl::checkError();
+        glVertexAttribDivisor(2, 1); gl::checkError();
+        glVertexAttribDivisor(3, 1); gl::checkError();
+        glVertexAttribDivisor(4, 1); gl::checkError();
+        glVertexAttribDivisor(5, 1); gl::checkError();
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0); gl::checkError();
+        glBindVertexArray(0); gl::checkError();
+
+        auto instanceData = std::vector<InstanceData>();
+        instanceData.resize(cubesCount); 
+
+        float step = 0.f;
+        bool updateBuffer = false;
 
         while (!glfwWindowShouldClose(window))
         {
@@ -110,23 +159,57 @@ int main()
             glm::mat4 view = cam.view();
             ourShader.setMat4("view", view);
 
-            glBindVertexArray(VAO);
+            instanceData[0].color = glm::vec4(1, 0, 0, 1);
+            auto apple_transformation = glm::translate(glm::mat4(1.f), glm::vec3(game.apple(), 0));
+            apple_transformation = glm::rotate(apple_transformation, currentFrame, glm::vec3(currentFrame,currentFrame,currentFrame));
+            apple_transformation = glm::scale(apple_transformation, glm::vec3(0.5, 0.5, 0.5));
+            instanceData[0].transformation = apple_transformation;
+
+            auto snakeIt = game.snake().begin();
+            for (int i = 1; i < instanceData.size(); ++i)
+            {
+                auto transformation = glm::mat4(1.0);
+
+                transformation = glm::translate(transformation, glm::vec3(snakeIt->x, snakeIt->y, 0));
+                //transformation = glm::rotate(transformation, currentFrame, glm::vec3(0, 1, 0));
+                transformation = glm::scale(transformation, glm::vec3(0.8f, 0.8f, 0.8f));
+
+                instanceData[i].transformation = transformation;
+                instanceData[i].color = glm::lerp(glm::vec4(0.25f, 0.5f, 1.f, 1.f), glm::vec4(0.f, 1.f, 0.f, 1.f), float(i) / cubesCount);
+
+                if (i == game.snake().size())
+                    break;
+
+                snakeIt++;
+            }
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-            for (int i = 0; i < 10; ++i)
-            {
-                glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-                float angle = 100 * currentFrame;
-                model = glm::translate(model, glm::vec3(1.0f * i, 0.f, 0.f));
-                //model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-                model = glm::scale(model, glm::vec3(.8f, .9f, .9f));
-                ourShader.setMat4("model", model);
 
-                glDrawElements(GL_TRIANGLE_STRIP, indexes.size(), GL_UNSIGNED_INT, 0);
+            if (updateBuffer)
+            {
+                const auto dataSize = sizeof(InstanceData) * cubesCount;
+                glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+                gl::checkError();
+                glBufferSubData(GL_ARRAY_BUFFER, 0, dataSize, instanceData.data());
+                gl::checkError();
+                updateBuffer = false;
             }
+
+            glBindVertexArray(VAO);
+            gl::checkError();
+            glDrawElementsInstanced(GL_TRIANGLE_STRIP, indexes.size(), GL_UNSIGNED_INT, nullptr, cubesCount);
+            gl::checkError();
 
             glfwSwapBuffers(window);
             glfwPollEvents();
+
+            if (currentFrame > step && !game.win())
+            {
+                //std::cout << "move" << std::endl;
+                game.update(bot.next_move());
+                step += 0.001;
+                updateBuffer = true;
+            }
         }
 
         glDeleteVertexArrays(1, &VAO);
