@@ -15,7 +15,7 @@ namespace game_logic
     private:
         static auto create_initial_snake()
         {
-            auto snake = std::list<glm::u32vec2>{};
+            auto snake = std::list<glm::i32vec2>{};
             for (const auto& node : initial_snake)
             {
                 snake.push_back(node);
@@ -23,9 +23,9 @@ namespace game_logic
             return snake;
         }
 
-        static auto generate_available_cells(const glm::u32vec2& game_size, const std::list<glm::u32vec2>& snake)
+        static auto generate_available_cells(const glm::i32vec2& game_size, const std::list<glm::i32vec2>& snake)
         {
-            auto available_cells = std::deque<glm::u32vec2>{};
+            auto available_cells = std::deque<glm::i32vec2>{};
             for (int y = 0; y < game_size.y; ++y)
             {
                 for (int x = 0; x < game_size.x; ++x)
@@ -66,7 +66,7 @@ namespace game_logic
         }
 
     public:
-        game_logic(const glm::u32vec2& game_size)
+        game_logic(const glm::i32vec2& game_size)
             : _game_size(game_size)
             , _max_score(_game_size.x * _game_size.y - initial_snake.size())
             , _delta({ 1, 0 })
@@ -84,7 +84,7 @@ namespace game_logic
         const auto& snake() const { return _snake; }
         const auto& apple() const { return _apple; }
 
-        bool update(const glm::u32vec2& input)
+        bool update(const glm::i32vec2& input)
         {
             process_input(input);
 
@@ -123,7 +123,7 @@ namespace game_logic
         }
 
     private:
-        glm::u32vec2 get_next_apple()
+        glm::i32vec2 get_next_apple()
         {
             const auto index = _random_indices.front();
             const auto apple = _available_cells.at(index);
@@ -132,7 +132,7 @@ namespace game_logic
             return apple;
         }
 
-        void process_input(const glm::u32vec2& input)
+        void process_input(const glm::i32vec2& input)
         {
             if (glm::all(glm::equal(input, {0, 0})))
                 return;
@@ -147,14 +147,14 @@ namespace game_logic
         }
 
     private:
-        static constexpr auto initial_snake = std::array{ glm::u32vec2{1,0}, glm::u32vec2{0,0} };
-        const glm::u32vec2 _game_size;
+        static constexpr auto initial_snake = std::array{ glm::i32vec2{1,0}, glm::i32vec2{0,0} };
+        const glm::i32vec2 _game_size;
         const std::size_t _max_score;
-        glm::u32vec2 _delta;
+        glm::i32vec2 _delta;
         std::size_t _score{ 0 };
-        std::list<glm::u32vec2> _snake;
-        std::deque<glm::u32vec2> _available_cells;
+        std::list<glm::i32vec2> _snake;
+        std::deque<glm::i32vec2> _available_cells;
         std::queue<std::size_t> _random_indices;
-        glm::u32vec2 _apple;
+        glm::i32vec2 _apple;
     };
 }

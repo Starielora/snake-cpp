@@ -15,10 +15,12 @@
 #include <iostream>
 #include <array>
 #include <vector>
+#include <queue>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 void processInput(GLFWwindow *window);
 
 unsigned int SCR_WIDTH = 800;
@@ -37,6 +39,9 @@ struct InstanceData
     glm::vec4 color;
     glm::mat4 transformation;
 };
+
+std::queue<glm::u32vec2> next_move;
+float snake_speed = 0.1;
 
 int main()
 {
@@ -64,6 +69,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -94,7 +100,7 @@ int main()
         const auto VBO = gl::genBuffer();
         const auto instanceVBO = gl::genBuffer();
         const auto EBO = gl::genBuffer();
-        const auto cubesCount = game_size.x * game_size.y;
+        const auto instanceDataSize = game_size.x * game_size.y + 1 + 4;
 
         glBindVertexArray(VAO);
 
@@ -108,7 +114,7 @@ int main()
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexes.size() * sizeof(uint32_t), indexes.data(), GL_STATIC_DRAW);
 
         glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); gl::checkError();
-        glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * cubesCount, nullptr, GL_DYNAMIC_DRAW); gl::checkError();
+        glBufferData(GL_ARRAY_BUFFER, sizeof(InstanceData) * instanceDataSize, nullptr, GL_DYNAMIC_DRAW); gl::checkError();
 
         glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(0 * sizeof(glm::vec4))); gl::checkError();
         glEnableVertexAttribArray(1); gl::checkError();
@@ -135,10 +141,30 @@ int main()
         glBindVertexArray(0); gl::checkError();
 
         auto instanceData = std::vector<InstanceData>();
-        instanceData.resize(cubesCount); 
+        instanceData.resize(instanceDataSize);
+
+        auto& apple = instanceData[0];
+
+        auto& top = instanceData[1];
+        top.color = { 0.5, 0.25, 0.75, 1 };
+        top.transformation = glm::translate(glm::mat4(1.f), glm::vec3(float(game_size.x - 1) / 2, game_size.y, 0));
+        top.transformation = glm::scale(top.transformation, glm::vec3(game_size.x, 1, 1));
+        auto& left = instanceData[2];
+        left.color = top.color;
+        left.transformation = glm::translate(glm::mat4(1.f), glm::vec3(-1, float(game_size.y - 1) / 2, 0));
+        left.transformation = glm::scale(left.transformation, glm::vec3(1, game_size.y, 1));
+        auto& right = instanceData[3];
+        right.color = top.color;
+        right.transformation = glm::translate(glm::mat4(1.f), glm::vec3(game_size.x, float(game_size.y - 1) / 2, 0));
+        right.transformation = glm::scale(right.transformation, glm::vec3(1, game_size.y, 1));
+        auto& bottom = instanceData[4];
+        bottom.color = top.color;
+        bottom.transformation = glm::translate(glm::mat4(1.f), glm::vec3(float(game_size.x - 1) / 2, -1, 0));
+        bottom.transformation = glm::scale(bottom.transformation, glm::vec3(game_size.x, 1, 1));
 
         float step = 0.f;
         bool updateBuffer = false;
+        bool game_lost = false;
 
         while (!glfwWindowShouldClose(window))
         {
@@ -148,7 +174,8 @@ int main()
 
             processInput(window);
 
-            glClearColor(155.f / 255.f, 196.f / 255.f, 226.f / 255.f, 1.0f);
+            //glClearColor(155.f / 255.f, 196.f / 255.f, 226.f / 255.f, 1.0f);
+            glClearColor(0, 0, 0, 1.f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             ourShader.use();
@@ -166,28 +193,28 @@ int main()
             instanceData[0].transformation = apple_transformation;
 
             auto snakeIt = game.snake().begin();
-            for (int i = 1; i < instanceData.size(); ++i)
+            for (int i = 5; i < 5 + game.snake().size(); ++i)
             {
                 auto transformation = glm::mat4(1.0);
 
                 transformation = glm::translate(transformation, glm::vec3(snakeIt->x, snakeIt->y, 0));
                 //transformation = glm::rotate(transformation, currentFrame, glm::vec3(0, 1, 0));
-                transformation = glm::scale(transformation, glm::vec3(0.8f, 0.8f, 0.8f));
+                transformation = glm::scale(transformation, glm::vec3(0.75f, 0.75f, 0.75f));
 
                 instanceData[i].transformation = transformation;
-                instanceData[i].color = glm::lerp(glm::vec4(0.25f, 0.5f, 1.f, 1.f), glm::vec4(0.f, 1.f, 0.f, 1.f), float(i) / cubesCount);
+                instanceData[i].color = glm::lerp(glm::vec4(0.25f, 0.5f, 1.f, 1.f), glm::vec4(0.f, 1.f, 0.f, 1.f), float(i) / (game_size.x * game_size.y));
 
-                if (i == game.snake().size())
+                if (snakeIt++ == game.snake().end())
                     break;
 
-                snakeIt++;
+                //snakeIt++;
             }
 
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
             if (updateBuffer)
             {
-                const auto dataSize = sizeof(InstanceData) * cubesCount;
+                const auto dataSize = sizeof(InstanceData) * (instanceDataSize);
                 glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
                 gl::checkError();
                 glBufferSubData(GL_ARRAY_BUFFER, 0, dataSize, instanceData.data());
@@ -197,16 +224,24 @@ int main()
 
             glBindVertexArray(VAO);
             gl::checkError();
-            glDrawElementsInstanced(GL_TRIANGLE_STRIP, indexes.size(), GL_UNSIGNED_INT, nullptr, cubesCount);
+            glDrawElementsInstanced(GL_TRIANGLE_STRIP, indexes.size(), GL_UNSIGNED_INT, nullptr, instanceDataSize);
             gl::checkError();
 
             glfwSwapBuffers(window);
             glfwPollEvents();
 
-            if (currentFrame > step && !game.win())
+            if (currentFrame > step && !game.win() && !game_lost)
             {
-                //std::cout << "move" << std::endl;
                 game.update(bot.next_move());
+                //if (next_move.empty())
+                //{
+                //    game_lost = game.update({ 0, 0 });
+                //}
+                //else
+                //{
+                //    game_lost = game.update(next_move.front());
+                //    next_move.pop();
+                //}
                 step += 0.001;
                 updateBuffer = true;
             }
@@ -235,6 +270,19 @@ void processInput(GLFWwindow *window)
         cam.strafeRight(deltaTime);
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS)
+        next_move.push({ 0, 1 });
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+        next_move.push({ 0, -1 });
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+        next_move.push({ -1, 0 });
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+        next_move.push({ 1, 0 });
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
