@@ -5,7 +5,7 @@
 
 class camera final
 {
-	float _speedMultiplier = 2.5f;
+	float _speedMultiplier = 4 * 2.5f;
 	float _yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
 	float _pitch = 0.0f;
 	float _lastX = 800.0f / 2.0;
@@ -13,7 +13,7 @@ class camera final
 	float _fov = 45.0f;
 	float _sensitivity = 0.1f;
 
-	glm::vec3 _cameraPos = glm::vec3(5.0f, 5.0f, 20.0f);
+	glm::vec3 _cameraPos = glm::vec3(5.0f, 5.0f, 40.0f);
 	glm::vec3 _cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 	glm::vec3 _cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 	glm::vec3 _cameraRight;
