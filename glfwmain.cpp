@@ -26,8 +26,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void processInput(GLFWwindow *window);
 unsigned int loadTexture(char const* path);
 
-unsigned int SCR_WIDTH = 800;
-unsigned int SCR_HEIGHT = 600;
+unsigned int SCR_WIDTH = 2*800;
+unsigned int SCR_HEIGHT = 2*600;
 
 camera cam;
 float lastX = SCR_WIDTH / 2.0f;
@@ -46,6 +46,9 @@ struct InstanceData
 std::queue<glm::u32vec2> next_move;
 float snake_speed = 0.1;
 bool progressGame = false;
+
+static constexpr auto grid_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/grid.vs"), std::string_view("D:/dev/snake-cpp/grid.fs") };
+shader* grid_shader;
 
 namespace cubes
 {
@@ -228,9 +231,10 @@ int main()
     game_logic::bot bot(game_size);
 
     glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -258,12 +262,17 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_MULTISAMPLE);
 
     {
         shader lighting_shader("D:/dev/snake-cpp/lighting.vs", "D:/dev/snake-cpp/lighting.fs");
+        grid_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
 
         const auto cube_instances_count = game_size.x * game_size.y + 1 + 4;
         const auto [cube_VAO, cube_VBO, cube_instances_VBO] = cubes::init(cube_instances_count);
+        const auto grid_VAO = gl::genVertexArray();
 
         unsigned int diffuseMap = loadTexture("D:/dev/snake-cpp/container2.png");
         unsigned int specularMap = loadTexture("D:/dev/snake-cpp/container2_specular.png");
@@ -341,6 +350,14 @@ int main()
             glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_instances_count);
             gl::checkError();
 
+            grid_shader->use();
+            grid_shader->setMat4("view", view);
+            grid_shader->setMat4("projection", projection);
+            grid_shader->setVec3("cameraPos", cam.position());
+            glBindVertexArray(grid_VAO);
+            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, 0);
+            gl::checkError();
+
             glfwSwapBuffers(window);
             glfwPollEvents();
 
@@ -401,6 +418,19 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         next_move.push({ -1, 0 });
     if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
         next_move.push({ 1, 0 });
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_RELEASE)
+    {
+        try
+        {
+            auto* new_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
+            delete grid_shader;
+            grid_shader = new_shader;
+        }
+        catch (const std::runtime_error& e)
+        {
+            std::cerr << e.what() << "\n";
+        }
+    }
 
 }
 
