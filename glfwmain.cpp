@@ -48,7 +48,9 @@ float snake_speed = 0.1;
 bool progressGame = false;
 
 static constexpr auto grid_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/grid.vs"), std::string_view("D:/dev/snake-cpp/grid.fs") };
+static constexpr auto sun_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/sun.vs"), std::string_view("D:/dev/snake-cpp/sun.fs") };
 shader* grid_shader;
+shader* sun_shader;
 
 namespace cubes
 {
@@ -269,6 +271,7 @@ int main()
     {
         shader lighting_shader("D:/dev/snake-cpp/lighting.vs", "D:/dev/snake-cpp/lighting.fs");
         grid_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
+        sun_shader = new shader(std::get<0>(sun_shader_paths), std::get<1>(sun_shader_paths));
 
         const auto cube_instances_count = game_size.x * game_size.y + 1 + 4;
         const auto [cube_VAO, cube_VBO, cube_instances_VBO] = cubes::init(cube_instances_count);
@@ -345,9 +348,18 @@ int main()
                 updateBuffer = false;
             }
 
-            glBindVertexArray(cube_VAO);
-            gl::checkError();
-            glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_instances_count);
+            //glBindVertexArray(cube_VAO);
+            //gl::checkError();
+            //glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_instances_count);
+            //gl::checkError();
+
+            sun_shader->use();
+            sun_shader->setMat4("view", view);
+            sun_shader->setMat4("projection", projection);
+            sun_shader->setVec3("cameraPos", cam.position());
+            sun_shader->setFloat("time", currentFrame);
+            glBindVertexArray(grid_VAO);
+            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, 0);
             gl::checkError();
 
             grid_shader->use();
@@ -422,9 +434,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     {
         try
         {
-            auto* new_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
-            delete grid_shader;
-            grid_shader = new_shader;
+            {
+                auto* new_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
+                delete grid_shader;
+                grid_shader = new_shader;
+            }
+            {
+                auto* new_shader = new shader(std::get<0>(sun_shader_paths), std::get<1>(sun_shader_paths));
+                delete sun_shader;
+                sun_shader = new_shader;
+            }
         }
         catch (const std::runtime_error& e)
         {

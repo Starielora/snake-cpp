@@ -25,7 +25,7 @@ public:
 	auto& position() { return _cameraPos; }
 	auto& fov() { return _fov; }
 
-	auto projection(float width, float height) { return glm::perspective(glm::radians(_fov), width / height, 0.1f, 100.f); }
+	auto projection(float width, float height) { return glm::perspective(glm::radians(_fov), width / height, 0.1f, 200.f); }
 	auto view() { return glm::lookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp); }
 
 	void moveForward(float t)

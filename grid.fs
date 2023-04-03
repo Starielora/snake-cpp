@@ -42,6 +42,7 @@ layout (location=1) in float gridSize;
 layout (location=0) out vec4 out_FragColor;
 
 #define PI 3.1415
+// #define AXIS
 
 void main()
 {
@@ -57,16 +58,18 @@ void main()
 
 	float linecount = 2.0 * x_size;
     float blendregion = 2.8;
-    
+
     vec2 dF = fwidth(worldPos.xz) * linecount;
     float valueX = 1.0 - smoothstep(dF.s * thickness, dF.s * (thickness + blendregion), x_step);
     float valueY = 1.0 - smoothstep(dF.t * thickness, dF.t * (thickness + blendregion), z_step);
     vec3 vertical = vec3(valueX);
     vec3 horizontal = vec3(valueY);
-    
-    vec3 color = max(vertical, horizontal);
-    color *= vec3(0.537,0.441,0.825);
-    
+	float bloom = smoothstep(0.0, 1., distanceToCamera/100.);
+
+    vec3 color = max(vertical + bloom, horizontal + bloom);
+	color *= vec3(1.,0.5,1.);
+
+	#ifdef AXIS
     if (length(worldPos * vec3(0., 1., 1.)) < 0.04)
     {
         color = vec3(1.0, 0.0, 0.0);
@@ -75,7 +78,7 @@ void main()
     {
         color = vec3(0.0, 0.0, 1.0);
     }
-    
-    // out_FragColor = vec4(color, 1.-distanceToCamera/100.);
+	#endif
+
 	out_FragColor = vec4(color, (1.-pow(distanceToCamera/gridSize, 3)) * length(color));
 }
