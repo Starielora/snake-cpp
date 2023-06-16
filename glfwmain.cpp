@@ -18,6 +18,9 @@
 #include <array>
 #include <vector>
 #include <queue>
+#include <numeric>
+#include <array>
+#include <string_view>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -242,7 +245,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
@@ -254,6 +257,7 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSwapInterval(1);
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -292,9 +296,16 @@ int main()
         float step = 0.f;
         bool updateBuffer = true;
         bool game_lost = false;
+        auto title = std::array<char, 20>{};
+        auto frame_times = std::array<float, 100>{};
+        auto frame_times_index = std::size_t{ 0 };
 
         while (!glfwWindowShouldClose(window))
         {
+            static float frame_start_ts = 0.f;
+            frame_start_ts = glfwGetTime();
+            static float last_frame_end_ts = 0.f;
+
             float currentFrame = static_cast<float>(glfwGetTime());
             deltaTime = currentFrame - lastFrame;
             lastFrame = currentFrame;
@@ -389,6 +400,17 @@ int main()
                 step += 0.1;
                 updateBuffer = true;
             }
+
+            const auto frame_total_time = (glfwGetTime() - frame_start_ts);
+
+            frame_times[frame_times_index++ % frame_times.size()] = frame_total_time;
+            const auto avg_fps = 1./(std::accumulate(frame_times.begin(), frame_times.end(), 0.f) / frame_times.size());
+
+            // TODO fmt
+            constexpr auto title_format = std::string_view("fps: %f");
+            const int title_written_chars = std::snprintf(title.data(), title.size(), title_format.data(), avg_fps);
+            assert(title_written_chars < title.size());
+            glfwSetWindowTitle(window, title.data());
         }
 
         glDeleteVertexArrays(1, &cube_VAO);
