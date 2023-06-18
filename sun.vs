@@ -69,7 +69,7 @@ void main()
 {
     vec3 vertex = pos[indices[gl_VertexID]];
     vec3 translation = vec3(-25, 20, cameraPos.z-100);
-    float scaleFactor = 15;
+    float scaleFactor = 10.;
 
     mat4 model = mat4(1.);
     model = translate(model ,translation);

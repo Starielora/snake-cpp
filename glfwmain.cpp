@@ -52,8 +52,10 @@ bool progressGame = false;
 
 static constexpr auto grid_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/grid.vs"), std::string_view("D:/dev/snake-cpp/grid.fs") };
 static constexpr auto sun_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/sun.vs"), std::string_view("D:/dev/snake-cpp/sun.fs") };
+static constexpr auto skybox_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/skybox.vs"), std::string_view("D:/dev/snake-cpp/skybox.fs") };
 shader* grid_shader;
 shader* sun_shader;
+shader* skybox_shader;
 
 namespace cubes
 {
@@ -268,6 +270,7 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_MULTISAMPLE);
@@ -276,6 +279,7 @@ int main()
         shader lighting_shader("D:/dev/snake-cpp/lighting.vs", "D:/dev/snake-cpp/lighting.fs");
         grid_shader = new shader(std::get<0>(grid_shader_paths), std::get<1>(grid_shader_paths));
         sun_shader = new shader(std::get<0>(sun_shader_paths), std::get<1>(sun_shader_paths));
+        skybox_shader = new shader(std::get<0>(skybox_shader_paths), std::get<1>(skybox_shader_paths));
 
         const auto cube_instances_count = game_size.x * game_size.y + 1 + 4;
         const auto [cube_VAO, cube_VBO, cube_instances_VBO] = cubes::init(cube_instances_count);
@@ -363,6 +367,16 @@ int main()
             //gl::checkError();
             //glDrawArraysInstanced(GL_TRIANGLES, 0, 36, cube_instances_count);
             //gl::checkError();
+
+            //glDepthMask(GL_FALSE);
+            skybox_shader->use();
+            skybox_shader->setMat4("view", view);
+            skybox_shader->setMat4("projection", projection);
+            skybox_shader->setVec3("cameraPos", cam.position());
+            glBindVertexArray(grid_VAO);
+            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 36, 1, 0);
+            gl::checkError();
+            //glDepthMask(GL_TRUE);
 
             sun_shader->use();
             sun_shader->setMat4("view", view);
@@ -465,6 +479,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
                 auto* new_shader = new shader(std::get<0>(sun_shader_paths), std::get<1>(sun_shader_paths));
                 delete sun_shader;
                 sun_shader = new_shader;
+            }
+            {
+                auto* new_shader = new shader(std::get<0>(skybox_shader_paths), std::get<1>(skybox_shader_paths));
+                delete skybox_shader;
+                skybox_shader = new_shader;
             }
         }
         catch (const std::runtime_error& e)
