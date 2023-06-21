@@ -245,16 +245,12 @@ namespace stars
     {
         auto rd = std::random_device{};
         auto gen = std::mt19937(rd());
-        //auto x_distrib = std::uniform_real_distribution<float>(-100., 100.);
-        //auto y_distrib = std::uniform_real_distribution<float>(0., 100.);
-        //auto z_distrib = std::uniform_real_distribution<float>(-100., -90.);
         auto distrib = std::uniform_real_distribution(-1., 1.);
 
         auto stars_buffer = std::array<glm::vec3, instances_count>{};
 
         for (auto& star : stars_buffer)
         {
-            //star = glm::vec3(x_distrib(gen), y_distrib(gen), z_distrib(gen));
             auto x = distrib(gen);
             auto y = std::abs(distrib(gen)) + 0.2;
             auto z = (distrib(gen) - 1) / 2;
@@ -448,7 +444,7 @@ int main()
             sun_shader->setVec3("cameraPos", cam.position());
             sun_shader->setFloat("time", currentFrame);
             sun_shader->setFloat("scaleFactor", 10.f);
-            sun_shader->setVec3("translation", glm::vec3(-25, 20, cam.position().z - 100));
+            sun_shader->setVec3("translation", glm::vec3(-25, 20, -100) + cam.position());
             glBindVertexArray(grid_VAO);
             glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, 0);
             gl::checkError();

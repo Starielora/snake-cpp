@@ -74,7 +74,7 @@ void main()
     // vec3 translation = vec3(-25, 20, cameraPos.z-100);
     vec3 starPos = aPos;
     // starPos.z += cameraPos.z;
-    vec3 translation = starPos;
+    vec3 translation = starPos + cameraPos;
 
     mat4 model = mat4(1.);
     model = translate(model, translation);
