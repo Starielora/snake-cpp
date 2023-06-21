@@ -143,6 +143,10 @@ namespace cubes
         glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(InstanceData), (const void*)(4 * sizeof(glm::vec4))); gl::checkError();
         glEnableVertexAttribArray(7); gl::checkError();
 
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
         glVertexAttribDivisor(3, 1); gl::checkError();
         glVertexAttribDivisor(4, 1); gl::checkError();
         glVertexAttribDivisor(5, 1); gl::checkError();
@@ -234,6 +238,61 @@ namespace cubes
     }
 }
 
+namespace stars
+{
+    constexpr auto instances_count = 169;
+    auto init()
+    {
+        auto rd = std::random_device{};
+        auto gen = std::mt19937(rd());
+        //auto x_distrib = std::uniform_real_distribution<float>(-100., 100.);
+        //auto y_distrib = std::uniform_real_distribution<float>(0., 100.);
+        //auto z_distrib = std::uniform_real_distribution<float>(-100., -90.);
+        auto distrib = std::uniform_real_distribution(-1., 1.);
+
+        auto stars_buffer = std::array<glm::vec3, instances_count>{};
+
+        for (auto& star : stars_buffer)
+        {
+            //star = glm::vec3(x_distrib(gen), y_distrib(gen), z_distrib(gen));
+            auto x = distrib(gen);
+            auto y = std::abs(distrib(gen)) + 0.2;
+            auto z = (distrib(gen) - 1) / 2;
+
+            constexpr auto r = 110.;
+            // TODO handle x == y == z == 0;
+            const auto magnitude = r / std::sqrt(x * x + y * y + z * z);
+
+            x *= magnitude;
+            y *= magnitude;
+            z *= magnitude;
+
+            star = glm::vec3(x, y, z);
+        }
+
+        const auto VAO = gl::genVertexArray();
+        const auto VBO = gl::genBuffer();
+        const auto instanceVBO = gl::genBuffer();
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO); gl::checkError();
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * instances_count, stars_buffer.data(), GL_STATIC_DRAW); gl::checkError();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
+        glEnableVertexAttribArray(0);
+
+        glVertexAttribDivisor(0, 1);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0); gl::checkError();
+        glBindVertexArray(0); gl::checkError();
+
+        return std::tuple{ VAO, VBO, instanceVBO };
+    }
+}
+
 int main()
 {
     glm::u32vec2 game_size{ 10, 10 };
@@ -287,6 +346,7 @@ int main()
 
         const auto cube_instances_count = game_size.x * game_size.y + 1 + 4;
         const auto [cube_VAO, cube_VBO, cube_instances_VBO] = cubes::init(cube_instances_count);
+        const auto [stars_VAO, stars_VBO, stars_instances_VBO] = stars::init();
         const auto grid_VAO = gl::genVertexArray();
 
         unsigned int diffuseMap = loadTexture("D:/dev/snake-cpp/container2.png");
@@ -387,8 +447,20 @@ int main()
             sun_shader->setMat4("projection", projection);
             sun_shader->setVec3("cameraPos", cam.position());
             sun_shader->setFloat("time", currentFrame);
+            sun_shader->setFloat("scaleFactor", 10.f);
+            sun_shader->setVec3("translation", glm::vec3(-25, 20, cam.position().z - 100));
             glBindVertexArray(grid_VAO);
             glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, 0);
+            gl::checkError();
+
+            star_shader->use();
+            star_shader->setMat4("view", view);
+            star_shader->setMat4("projection", projection);
+            star_shader->setVec3("cameraPos", cam.position());
+            star_shader->setFloat("time", currentFrame);
+            star_shader->setFloat("scaleFactor", 0.1);
+            glBindVertexArray(stars_VAO); gl::checkError();
+            glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, stars::instances_count, 0);
             gl::checkError();
 
             grid_shader->use();

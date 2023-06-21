@@ -18,7 +18,8 @@ uniform float time;
 uniform float scaleFactor;
 uniform vec3 translation;
 
-layout (location=0) out vec2 st;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) out vec2 st;
 
 mat4 lookAt(vec3 target)
 {
@@ -70,6 +71,10 @@ mat4 scale(mat4 model, vec3 scale)
 void main()
 {
     vec3 vertex = pos[indices[gl_VertexID]];
+    // vec3 translation = vec3(-25, 20, cameraPos.z-100);
+    vec3 starPos = aPos;
+    // starPos.z += cameraPos.z;
+    vec3 translation = starPos;
 
     mat4 model = mat4(1.);
     model = translate(model, translation);
