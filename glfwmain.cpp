@@ -22,6 +22,7 @@
 #include <array>
 #include <string_view>
 #include <memory>
+#include <numbers>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -55,10 +56,12 @@ static constexpr auto grid_shader_paths = std::tuple{ std::string_view("D:/dev/s
 static constexpr auto sun_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/sun.vs"), std::string_view("D:/dev/snake-cpp/sun.fs") };
 static constexpr auto skybox_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/skybox.vs"), std::string_view("D:/dev/snake-cpp/skybox.fs") };
 static constexpr auto star_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/star.vs"), std::string_view("D:/dev/snake-cpp/star.fs")};
+static constexpr auto mountains_shader_paths = std::tuple{ std::string_view("D:/dev/snake-cpp/mountains.vs"), std::string_view("D:/dev/snake-cpp/mountains.fs") };
 std::unique_ptr<shader> grid_shader;
 std::unique_ptr<shader> sun_shader;
 std::unique_ptr<shader> skybox_shader;
 std::unique_ptr<shader> star_shader;
+std::unique_ptr<shader> mountains_shader;
 
 namespace cubes
 {
@@ -240,7 +243,7 @@ namespace cubes
 
 namespace stars
 {
-    constexpr auto instances_count = 169;
+    constexpr auto instances_count = 469;
     auto init()
     {
         auto rd = std::random_device{};
@@ -252,8 +255,8 @@ namespace stars
         for (auto& star : stars_buffer)
         {
             auto x = distrib(gen);
-            auto y = std::abs(distrib(gen)) + 0.2;
-            auto z = (distrib(gen) - 1) / 2;
+            auto y = std::abs(distrib(gen)) + 0.15;
+            auto z = distrib(gen);
 
             constexpr auto r = 110.;
             // TODO handle x == y == z == 0;
@@ -287,6 +290,81 @@ namespace stars
 
         return std::tuple{ VAO, VBO, instanceVBO };
     }
+}
+
+namespace mountains
+{
+    constexpr auto mountain_tops = 369;
+    constexpr auto vertices_count = 2*mountain_tops + 2;
+    auto init()
+    {
+        auto rd = std::random_device{};
+        auto gen = std::mt19937(rd());
+        auto distrib = std::uniform_real_distribution(0.75, 1.);
+
+        auto vertices = std::array<glm::vec3, vertices_count>();
+
+        for(int i = 0; i < mountain_tops; i++)
+        {
+            const auto angle = i * (2 * std::numbers::pi / float(mountain_tops)) - std::numbers::pi / 2;
+            auto x = std::cos(angle);
+            auto y = distrib(gen);
+            auto z = std::sin(angle);
+
+            constexpr auto r = 100.;
+            // TODO handle x == y == z == 0;
+            const auto magnitude = r / std::sqrt(x * x + z * z);
+
+            x *= magnitude;
+            y *= magnitude;
+            z *= magnitude;
+
+            vertices[2*i] = glm::vec3(x, -10., z);
+            vertices[2*i + 1] = glm::vec3(x, y, z);
+        }
+
+        vertices[vertices.size() - 2] = vertices[0];
+        vertices[vertices.size() - 1] = vertices[1];
+
+        constexpr auto angle_start = std::numbers::pi / 6.;
+        constexpr auto angle_end = 2 * std::numbers::pi - angle_start;
+        constexpr auto angle_step = (angle_end - angle_start) / float(mountain_tops);
+
+        constexpr auto one_direction_samples_count = int(angle_start / angle_step);
+
+        for (int i = 1; i < one_direction_samples_count; i+=2)
+        {
+            const auto magnitude = .1 + sin((std::numbers::pi * float(i) / one_direction_samples_count) - std::numbers::pi / 2.);
+            if (magnitude <= 0.f)
+            {
+                vertices[i].y = -9.f;
+                vertices[vertices.size() - i].y = -9.f;
+            }
+            else
+            {
+                vertices[i].y *= magnitude;
+                vertices[vertices.size() - i].y *= magnitude;
+            }
+        }
+
+        const auto VAO = gl::genVertexArray();
+        const auto VBO = gl::genBuffer();
+
+        glBindVertexArray(VAO);
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+        constexpr auto value_type_size = sizeof(decltype(vertices)::value_type);
+        glBufferData(GL_ARRAY_BUFFER, vertices.size() * value_type_size, vertices.data(), GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, value_type_size, nullptr);
+        glEnableVertexAttribArray(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0); gl::checkError();
+        glBindVertexArray(0); gl::checkError();
+
+        return std::tuple{VAO, VBO};
+    }
+
 }
 
 int main()
@@ -332,6 +410,7 @@ int main()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_MULTISAMPLE);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     {
         shader lighting_shader("D:/dev/snake-cpp/lighting.vs", "D:/dev/snake-cpp/lighting.fs");
@@ -339,10 +418,12 @@ int main()
         sun_shader = std::make_unique<shader>(std::get<0>(sun_shader_paths), std::get<1>(sun_shader_paths));
         skybox_shader = std::make_unique<shader>(std::get<0>(skybox_shader_paths), std::get<1>(skybox_shader_paths));
         star_shader = std::make_unique<shader>(std::get<0>(star_shader_paths), std::get<1>(star_shader_paths));
+        mountains_shader = std::make_unique<shader>(std::get<0>(mountains_shader_paths), std::get<1>(mountains_shader_paths));
 
         const auto cube_instances_count = game_size.x * game_size.y + 1 + 4;
         const auto [cube_VAO, cube_VBO, cube_instances_VBO] = cubes::init(cube_instances_count);
         const auto [stars_VAO, stars_VBO, stars_instances_VBO] = stars::init();
+        const auto [mountains_VAO, mountains_VBO] = mountains::init();
         const auto grid_VAO = gl::genVertexArray();
 
         unsigned int diffuseMap = loadTexture("D:/dev/snake-cpp/container2.png");
@@ -443,8 +524,8 @@ int main()
             sun_shader->setMat4("projection", projection);
             sun_shader->setVec3("cameraPos", cam.position());
             sun_shader->setFloat("time", currentFrame);
-            sun_shader->setFloat("scaleFactor", 10.f);
-            sun_shader->setVec3("translation", glm::vec3(-25, 20, -100) + cam.position());
+            sun_shader->setFloat("scaleFactor", 12.f);
+            sun_shader->setVec3("translation", glm::vec3(0, 5, -100) + cam.position());
             glBindVertexArray(grid_VAO);
             glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, 1, 0);
             gl::checkError();
@@ -458,6 +539,19 @@ int main()
             glBindVertexArray(stars_VAO); gl::checkError();
             glDrawArraysInstancedBaseInstance(GL_TRIANGLES, 0, 6, stars::instances_count, 0);
             gl::checkError();
+
+            mountains_shader->use();
+            mountains_shader->setMat4("view", view);
+            mountains_shader->setMat4("projection", projection);
+            mountains_shader->setVec3("cameraPos", cam.position());
+            glBindVertexArray(mountains_VAO); gl::checkError();
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, mountains::vertices_count);
+            gl::checkError();
+
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            //mountains_shader->setVec3("color", glm::vec3(1., 50. / 255., 1.));
+            //glDrawArrays(GL_TRIANGLE_STRIP, 0, mountains::vertices_count);
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
             grid_shader->use();
             grid_shader->setMat4("view", view);
@@ -553,6 +647,9 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
             }
             {
                 star_shader = std::make_unique<shader>(std::get<0>(star_shader_paths), std::get<1>(star_shader_paths));
+            }
+            {
+                mountains_shader = std::make_unique<shader>(std::get<0>(mountains_shader_paths), std::get<1>(mountains_shader_paths));
             }
         }
         catch (const std::runtime_error& e)

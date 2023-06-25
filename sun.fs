@@ -16,7 +16,9 @@ void main() {
     float cut = sin(12.448*st.y*PI + time*6.992) + 2.076*st.y;
 
     vec3 color = circle*vec3(smoothstep(cut + 0.600, cut, -0.308));
-    color *= mix(vec3(0.729,0.050,0.975), vec3(1.000,0.236,0.188), st.y);
+    vec3 c1 = vec3(0.729,0.050,0.975);
+    vec3 c2 = vec3(1.000,0.236,0.188);
+    color *= mix(c2, c1, st.y + 0.4);
 
     out_FragColor = vec4(color, 1.0 * length(color));
     // out_FragColor = vec4(st.x,st.y,0,1);
