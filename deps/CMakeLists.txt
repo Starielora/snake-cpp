@@ -9,5 +9,8 @@ add_library(glad STATIC
 
 target_include_directories(glad PUBLIC glad/include)
 
+add_library(PerlinNoise INTERFACE)
+target_include_directories(PerlinNoise INTERFACE PerlinNoise)
+
 add_subdirectory(glm)
 add_subdirectory(glfw)

@@ -11,6 +11,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include "PerlinNoise.hpp"
+
 #include "camera.hpp"
 #include "shader.hpp"
 
@@ -302,13 +304,20 @@ namespace mountains
         auto gen = std::mt19937(rd());
         auto distrib = std::uniform_real_distribution(0.75, 1.);
 
+        const siv::PerlinNoise::seed_type seed = 123456u;
+        const siv::PerlinNoise perlin{ seed };
+
         auto vertices = std::array<glm::vec3, vertices_count>();
+
+        constexpr auto y_min = 9.f;
+        constexpr auto y_max = 12.f;
 
         for(int i = 0; i < mountain_tops; i++)
         {
             const auto angle = i * (2 * std::numbers::pi / float(mountain_tops)) - std::numbers::pi / 2;
             auto x = std::cos(angle);
-            auto y = distrib(gen);
+            auto y = perlin.noise1D_01(i);
+            y = (y_max - y_min) * y + y_min;
             auto z = std::sin(angle);
 
             constexpr auto r = 100.;
@@ -316,10 +325,9 @@ namespace mountains
             const auto magnitude = r / std::sqrt(x * x + z * z);
 
             x *= magnitude;
-            y *= magnitude;
             z *= magnitude;
 
-            vertices[2*i] = glm::vec3(x, -10., z);
+            vertices[2*i] = glm::vec3(x, -1., z);
             vertices[2*i + 1] = glm::vec3(x, y, z);
         }
 
@@ -334,11 +342,11 @@ namespace mountains
 
         for (int i = 1; i < one_direction_samples_count; i+=2)
         {
-            const auto magnitude = .1 + sin((std::numbers::pi * float(i) / one_direction_samples_count) - std::numbers::pi / 2.);
+            const auto magnitude = .0 + sin((std::numbers::pi * float(i) / one_direction_samples_count) - std::numbers::pi / 2.);
             if (magnitude <= 0.f)
             {
-                vertices[i].y = -9.f;
-                vertices[vertices.size() - i].y = -9.f;
+                vertices[i].y = -1.f;
+                vertices[vertices.size() - i].y = -1.f;
             }
             else
             {

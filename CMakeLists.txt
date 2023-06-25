@@ -21,4 +21,4 @@ project(snake-cpp)
 
     set_target_properties(snake-cpp PROPERTIES CXX_STANDARD 20)
 
-    target_link_libraries(snake-cpp PRIVATE glm::glm glfw glad)
+    target_link_libraries(snake-cpp PRIVATE glm::glm glfw glad PerlinNoise)

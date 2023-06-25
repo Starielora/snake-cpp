@@ -6,3 +6,7 @@
 	path = deps/glfw
 	url = https://github.com/glfw/glfw.git
 	branch = master
+[submodule "deps/PerlinNoise"]
+	path = deps/PerlinNoise
+	url = https://github.com/Reputeless/PerlinNoise.git
+	branch = master
